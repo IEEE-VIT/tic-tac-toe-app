@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 
 void main() {
   runApp(const TicTacToeApp());
@@ -90,9 +91,12 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   List<String> board = List.filled(9, "");
-  bool isXTurn = true; // X starts first
-
+  bool isXTurn = Random().nextBool(); // Randomize the starting player
   String? winner;
+
+  // New: Scoreboard variables
+  int xScore = 0;
+  int oScore = 0;
 
   void _handleTap(int index) {
     if (board[index] != "" || winner != null) return;
@@ -101,6 +105,12 @@ class _GameScreenState extends State<GameScreen> {
       board[index] = isXTurn ? "X" : "O";
       if (_checkWinner(board[index])) {
         winner = board[index];
+        // New: Update score when a winner is found
+        if (winner == 'X') {
+          xScore++;
+        } else {
+          oScore++;
+        }
       } else if (!board.contains("")) {
         winner = "Draw";
       } else {
@@ -134,7 +144,7 @@ class _GameScreenState extends State<GameScreen> {
   void _resetGame() {
     setState(() {
       board = List.filled(9, "");
-      isXTurn = true;
+      isXTurn = Random().nextBool(); // Randomize the starting player on reset
       winner = null;
     });
   }
@@ -149,6 +159,25 @@ class _GameScreenState extends State<GameScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // New: Scoreboard display
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Text(
+                    'Red (X): $xScore',
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    'Blue (O): $oScore',
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
             Text(
               winner == null
                   ? (isXTurn ? "Red's Turn (X)" : "Blue's Turn (O)")
@@ -195,8 +224,7 @@ class _GameScreenState extends State<GameScreen> {
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                 ),
                 onPressed: _resetGame,
                 child: const Text(
