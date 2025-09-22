@@ -219,3 +219,28 @@ class _GameScreenState extends State<GameScreen> {
     return const SizedBox.shrink();
   }
 }
+import 'dart:math';
+
+
+String currentPlayer = 'X';
+
+void initState() {
+  super.initState();
+  _setStartingPlayer();
+}
+
+void _setStartingPlayer() {
+  Random random = Random();
+  int randomNumber = random.nextInt(2); 
+  if (randomNumber == 0) {
+    currentPlayer = 'X';
+  } else {
+    currentPlayer = 'O';
+  }
+}
+
+void _resetGame() {
+  
+  _setStartingPlayer();
+  
+}
