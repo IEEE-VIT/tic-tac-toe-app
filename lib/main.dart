@@ -4,7 +4,6 @@ void main() {
   runApp(const TicTacToeApp());
 }
 
-// -------------------- App Entry --------------------
 class TicTacToeApp extends StatelessWidget {
   const TicTacToeApp({super.key});
 
@@ -17,115 +16,63 @@ class TicTacToeApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: Colors.white,
       ),
-      home: const MainMenu(),
+      home: const TicTacToePage(),
     );
   }
 }
 
-// -------------------- Main Menu --------------------
-class MainMenu extends StatelessWidget {
-  const MainMenu({super.key});
+class TicTacToePage extends StatefulWidget {
+  const TicTacToePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Title
-            RichText(
-              text: TextSpan(
-                style: const TextStyle(
-                  fontSize: 40,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
-                ),
-                children: [
-                  TextSpan(
-                    text: "Tic-",
-                    style: TextStyle(color: Colors.red.shade700),
-                  ),
-                  TextSpan(
-                    text: "Tac-",
-                    style: TextStyle(color: Colors.blue.shade700),
-                  ),
-                  TextSpan(
-                    text: "Toe",
-                    style: TextStyle(color: Colors.red.shade700),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 60),
-            // New Game Button
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-                backgroundColor: Colors.black,
-              ),
-              child: const Text(
-                "New Game",
-                style: TextStyle(fontSize: 24, color: Colors.white),
-              ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const GameScreen()),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  State<TicTacToePage> createState() => _TicTacToePageState();
 }
 
-// -------------------- Game Screen --------------------
-class GameScreen extends StatefulWidget {
-  const GameScreen({super.key});
-
-  @override
-  State<GameScreen> createState() => _GameScreenState();
-}
-
-class _GameScreenState extends State<GameScreen> {
-  // Game state
+class _TicTacToePageState extends State<TicTacToePage>
+    with SingleTickerProviderStateMixin {
   List<String> board = List.filled(9, "");
   bool isXTurn = true; // X starts first
+
   String? winner;
-  List<int> winningCombination = [];
+  List<int>? winningIndices;
+  late AnimationController _controller;
+  late Animation<double> _endgameScale;
 
-  int redScore = 0;
-  int blueScore = 0;
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _endgameScale = Tween<double>(begin: 0.8, end: 1.0)
+        .animate(CurvedAnimation(parent: _controller, curve: Curves.elasticOut));
+  }
 
-  // -------------------- Handle Tap --------------------
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   void _handleTap(int index) {
     if (board[index] != "" || winner != null) return;
 
     setState(() {
       board[index] = isXTurn ? "X" : "O";
-      List<int>? combo = _checkWinner(board[index]);
-      if (combo != null) {
+      if (_checkWinner(board[index])) {
         winner = board[index];
-        winningCombination = combo;
-        if (winner == "X") {
-          redScore++;
-        } else {
-          blueScore++;
-        }
+        _controller.forward(from: 0);
       } else if (!board.contains("")) {
         winner = "Draw";
+        _controller.forward(from: 0);
       } else {
         isXTurn = !isXTurn;
       }
     });
   }
 
-  // -------------------- Check Winner --------------------
-  List<int>? _checkWinner(String player) {
+  bool _checkWinner(String player) {
     List<List<int>> winPatterns = [
       [0, 1, 2],
       [3, 4, 5],
@@ -141,139 +88,178 @@ class _GameScreenState extends State<GameScreen> {
       if (board[pattern[0]] == player &&
           board[pattern[1]] == player &&
           board[pattern[2]] == player) {
-        return pattern;
+        winningIndices = pattern;
+        return true;
       }
     }
-    return null;
+    winningIndices = null;
+    return false;
   }
 
-  // -------------------- Reset Game --------------------
   void _resetGame() {
     setState(() {
       board = List.filled(9, "");
       isXTurn = true;
       winner = null;
-      winningCombination = [];
+      winningIndices = null;
+      _controller.reset();
     });
-  }
-
-  // -------------------- Build Symbol --------------------
-  Widget _buildSymbol(int index) {
-    String value = board[index];
-    bool isWinningCell = winningCombination.contains(index);
-
-    if (value == "X") {
-      return Icon(
-        Icons.close,
-        size: 60,
-        color: isWinningCell ? Colors.red.shade900 : Colors.red.shade700,
-      );
-    } else if (value == "O") {
-      return Icon(
-        Icons.circle_outlined,
-        size: 60,
-        color: isWinningCell ? Colors.blue.shade900 : Colors.blue.shade700,
-      );
-    }
-    return const SizedBox.shrink();
   }
 
   @override
   Widget build(BuildContext context) {
-    Color bgColor = isXTurn ? Colors.red.shade300 : Colors.blue.shade300;
+    Color bgColor = isXTurn ? Colors.red.shade100 : Colors.blue.shade100;
+    Color redColor = Colors.red.shade700;
+    Color blueColor = Colors.blue.shade700;
 
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Turn or Winner Text
-            Text(
-              winner == null
-                  ? (isXTurn ? "Red's Turn (X)" : "Blue's Turn (O)")
-                  : (winner == "Draw"
-                      ? "It's a Draw!"
-                      : "${winner == "X" ? "Red" : "Blue"} Wins!"),
-              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            // Scoreboard
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _scoreCard("Red (X)", redScore, Colors.red.shade700),
-                const SizedBox(width: 30),
-                _scoreCard("Blue (O)", blueScore, Colors.blue.shade700),
-              ],
-            ),
-            const SizedBox(height: 40),
-            // Game Board
-            Container(
-              margin: const EdgeInsets.all(20),
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: Colors.black, width: 4),
-              ),
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    crossAxisSpacing: 4,
-                    mainAxisSpacing: 4,
-                  ),
-                  itemCount: 9,
-                  itemBuilder: (context, index) {
-                    return GestureDetector(
-                      onTap: () => _handleTap(index),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.black, width: 2),
-                          color: Colors.white,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 400),
+                child: winner == null
+                    ? Text(
+                        isXTurn ? "Red's Turn (X)" : "Blue's Turn (O)",
+                        key: ValueKey(isXTurn),
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: isXTurn ? redColor : blueColor,
                         ),
-                        child: Center(
-                          child: _buildSymbol(index),
+                      )
+                    : ScaleTransition(
+                        scale: _endgameScale,
+                        child: Container(
+                          key: ValueKey(winner),
+                          padding: const EdgeInsets.all(12),
+                          child: Text(
+                            winner == "Draw"
+                                ? "It's a Draw!"
+                                : "${winner == "X" ? "Red" : "Blue"} Wins!",
+                            style: TextStyle(
+                              fontSize: 38,
+                              fontWeight: FontWeight.bold,
+                              color: winner == "Draw"
+                                  ? Colors.black87
+                                  : winner == "X"
+                                      ? redColor
+                                      : blueColor,
+                              shadows: winner != "Draw"
+                                  ? [
+                                      Shadow(
+                                        color: winner == "X"
+                                            ? redColor
+                                            : blueColor,
+                                        offset: const Offset(2, 2),
+                                        blurRadius: 14,
+                                      )
+                                    ]
+                                  : [],
+                            ),
+                          ),
                         ),
                       ),
-                    );
-                  },
+              ),
+              const SizedBox(height: 40),
+              Container(
+                margin: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: Colors.black, width: 4),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 10,
+                      offset: Offset(4, 4),
+                    ),
+                  ],
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: GridView.builder(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 4,
+                      mainAxisSpacing: 4,
+                    ),
+                    itemCount: 9,
+                    itemBuilder: (context, index) {
+                      bool isWinningCell =
+                          winningIndices?.contains(index) ?? false;
+                      return AnimatedScale(
+                        scale: board[index].isNotEmpty ? 1.08 : 1.0,
+                        duration: const Duration(milliseconds: 220),
+                        curve: Curves.elasticOut,
+                        child: GestureDetector(
+                          onTap: () => _handleTap(index),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: isWinningCell
+                                    ? Colors.yellow.shade800
+                                    : Colors.black,
+                                width: isWinningCell ? 4.0 : 2.0,
+                              ),
+                              color: Colors.white,
+                              boxShadow: isWinningCell
+                                  ? [
+                                      BoxShadow(
+                                        color: Colors.yellow.withOpacity(0.7),
+                                        blurRadius: 12,
+                                      )
+                                    ]
+                                  : [],
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: _buildSymbol(board[index], redColor, blueColor),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            // Play Again Button
-            if (winner != null)
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+              if (winner != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 24.0),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 36, vertical: 20),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                    ),
+                    onPressed: _resetGame,
+                    child: const Text(
+                      "Play Again",
+                      style: TextStyle(fontSize: 24, color: Colors.white),
+                    ),
+                  ),
                 ),
-                onPressed: _resetGame,
-                child: const Text(
-                  "Play Again",
-                  style: TextStyle(fontSize: 20, color: Colors.white),
-                ),
-              )
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // -------------------- Score Card --------------------
-  Widget _scoreCard(String label, int score, Color color) {
-    return Column(
-      children: [
-        Text(label,
-            style: TextStyle(
-                fontSize: 20, fontWeight: FontWeight.bold, color: color)),
-        const SizedBox(height: 5),
-        Text(score.toString(),
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-      ],
-    );
+  Widget _buildSymbol(String value, Color redColor, Color blueColor) {
+    if (value == "X") {
+      return Icon(Icons.close, size: 64, color: redColor);
+    } else if (value == "O") {
+      return Icon(Icons.circle_outlined, size: 64, color: blueColor);
+    }
+    return const SizedBox.shrink();
   }
 }
+
