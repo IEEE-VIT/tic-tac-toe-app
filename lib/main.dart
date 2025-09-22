@@ -4,6 +4,7 @@ void main() {
   runApp(const TicTacToeApp());
 }
 
+// -------------------- App Entry --------------------
 class TicTacToeApp extends StatelessWidget {
   const TicTacToeApp({super.key});
 
@@ -21,6 +22,7 @@ class TicTacToeApp extends StatelessWidget {
   }
 }
 
+// -------------------- Main Menu --------------------
 class MainMenu extends StatelessWidget {
   const MainMenu({super.key});
 
@@ -81,6 +83,7 @@ class MainMenu extends StatelessWidget {
   }
 }
 
+// -------------------- Game Screen --------------------
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
 
@@ -89,18 +92,30 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
+  // Game state
   List<String> board = List.filled(9, "");
   bool isXTurn = true; // X starts first
-
   String? winner;
+  List<int> winningCombination = [];
 
+  int redScore = 0;
+  int blueScore = 0;
+
+  // -------------------- Handle Tap --------------------
   void _handleTap(int index) {
     if (board[index] != "" || winner != null) return;
 
     setState(() {
       board[index] = isXTurn ? "X" : "O";
-      if (_checkWinner(board[index])) {
+      List<int>? combo = _checkWinner(board[index]);
+      if (combo != null) {
         winner = board[index];
+        winningCombination = combo;
+        if (winner == "X") {
+          redScore++;
+        } else {
+          blueScore++;
+        }
       } else if (!board.contains("")) {
         winner = "Draw";
       } else {
@@ -109,7 +124,8 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
-  bool _checkWinner(String player) {
+  // -------------------- Check Winner --------------------
+  List<int>? _checkWinner(String player) {
     List<List<int>> winPatterns = [
       [0, 1, 2],
       [3, 4, 5],
@@ -125,18 +141,41 @@ class _GameScreenState extends State<GameScreen> {
       if (board[pattern[0]] == player &&
           board[pattern[1]] == player &&
           board[pattern[2]] == player) {
-        return true;
+        return pattern;
       }
     }
-    return false;
+    return null;
   }
 
+  // -------------------- Reset Game --------------------
   void _resetGame() {
     setState(() {
       board = List.filled(9, "");
       isXTurn = true;
       winner = null;
+      winningCombination = [];
     });
+  }
+
+  // -------------------- Build Symbol --------------------
+  Widget _buildSymbol(int index) {
+    String value = board[index];
+    bool isWinningCell = winningCombination.contains(index);
+
+    if (value == "X") {
+      return Icon(
+        Icons.close,
+        size: 60,
+        color: isWinningCell ? Colors.red.shade900 : Colors.red.shade700,
+      );
+    } else if (value == "O") {
+      return Icon(
+        Icons.circle_outlined,
+        size: 60,
+        color: isWinningCell ? Colors.blue.shade900 : Colors.blue.shade700,
+      );
+    }
+    return const SizedBox.shrink();
   }
 
   @override
@@ -149,6 +188,7 @@ class _GameScreenState extends State<GameScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // Turn or Winner Text
             Text(
               winner == null
                   ? (isXTurn ? "Red's Turn (X)" : "Blue's Turn (O)")
@@ -157,7 +197,18 @@ class _GameScreenState extends State<GameScreen> {
                       : "${winner == "X" ? "Red" : "Blue"} Wins!"),
               style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
+            const SizedBox(height: 20),
+            // Scoreboard
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _scoreCard("Red (X)", redScore, Colors.red.shade700),
+                const SizedBox(width: 30),
+                _scoreCard("Blue (O)", blueScore, Colors.blue.shade700),
+              ],
+            ),
             const SizedBox(height: 40),
+            // Game Board
             Container(
               margin: const EdgeInsets.all(20),
               padding: const EdgeInsets.all(8),
@@ -183,7 +234,7 @@ class _GameScreenState extends State<GameScreen> {
                           color: Colors.white,
                         ),
                         child: Center(
-                          child: _buildSymbol(board[index]),
+                          child: _buildSymbol(index),
                         ),
                       ),
                     );
@@ -191,6 +242,8 @@ class _GameScreenState extends State<GameScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 20),
+            // Play Again Button
             if (winner != null)
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -210,12 +263,17 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  Widget _buildSymbol(String value) {
-    if (value == "X") {
-      return Icon(Icons.close, size: 60, color: Colors.red.shade700);
-    } else if (value == "O") {
-      return Icon(Icons.circle_outlined, size: 60, color: Colors.blue.shade700);
-    }
-    return const SizedBox.shrink();
+  // -------------------- Score Card --------------------
+  Widget _scoreCard(String label, int score, Color color) {
+    return Column(
+      children: [
+        Text(label,
+            style: TextStyle(
+                fontSize: 20, fontWeight: FontWeight.bold, color: color)),
+        const SizedBox(height: 5),
+        Text(score.toString(),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+      ],
+    );
   }
 }
