@@ -196,7 +196,7 @@ class _GameScreenState extends State<GameScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                      const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
                 ),
                 onPressed: _resetGame,
                 child: const Text(
