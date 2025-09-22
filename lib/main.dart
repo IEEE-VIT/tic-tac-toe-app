@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 void main() {
   runApp(const TicTacToeApp());
@@ -31,7 +32,6 @@ class MainMenu extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Title
             RichText(
               text: TextSpan(
                 style: const TextStyle(
@@ -56,7 +56,6 @@ class MainMenu extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 60),
-            // New Game Button
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 padding:
@@ -88,14 +87,30 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
+class _GameScreenState extends State<GameScreen>
+    with SingleTickerProviderStateMixin {
   List<String> board = List.filled(9, "");
-  bool isXTurn = true; // X starts first
-
+  bool isXTurn = true;
   String? winner;
+  List<int> winningIndices = [];
+
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+      lowerBound: 0.0,
+      upperBound: 0.1,
+    );
+  }
 
   void _handleTap(int index) {
     if (board[index] != "" || winner != null) return;
+
+    _controller.forward().then((_) => _controller.reverse());
 
     setState(() {
       board[index] = isXTurn ? "X" : "O";
@@ -125,6 +140,7 @@ class _GameScreenState extends State<GameScreen> {
       if (board[pattern[0]] == player &&
           board[pattern[1]] == player &&
           board[pattern[2]] == player) {
+        winningIndices = pattern;
         return true;
       }
     }
@@ -136,6 +152,7 @@ class _GameScreenState extends State<GameScreen> {
       board = List.filled(9, "");
       isXTurn = true;
       winner = null;
+      winningIndices.clear();
     });
   }
 
@@ -155,7 +172,8 @@ class _GameScreenState extends State<GameScreen> {
                   : (winner == "Draw"
                       ? "It's a Draw!"
                       : "${winner == "X" ? "Red" : "Blue"} Wins!"),
-              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+              style:
+                  const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 40),
             Container(
@@ -168,22 +186,36 @@ class _GameScreenState extends State<GameScreen> {
               child: AspectRatio(
                 aspectRatio: 1,
                 child: GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3,
                     crossAxisSpacing: 4,
                     mainAxisSpacing: 4,
                   ),
                   itemCount: 9,
                   itemBuilder: (context, index) {
+                    bool isWinningCell = winningIndices.contains(index);
                     return GestureDetector(
                       onTap: () => _handleTap(index),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.black, width: 2),
-                          color: Colors.white,
-                        ),
-                        child: Center(
-                          child: _buildSymbol(board[index]),
+                      child: AnimatedScale(
+                        scale: 1.0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.black, width: 2),
+                            color: Colors.white,
+                            boxShadow: isWinningCell
+                                ? [
+                                    BoxShadow(
+                                        color: Colors.yellow.shade400,
+                                        blurRadius: 15,
+                                        spreadRadius: 2)
+                                  ]
+                                : [],
+                          ),
+                          child: Center(
+                            child: _buildSymbol(board[index]),
+                          ),
                         ),
                       ),
                     );
@@ -192,18 +224,22 @@ class _GameScreenState extends State<GameScreen> {
               ),
             ),
             if (winner != null)
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+              AnimatedOpacity(
+                opacity: winner != null ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 500),
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 30, vertical: 15),
+                  ),
+                  onPressed: _resetGame,
+                  child: const Text(
+                    "Play Again",
+                    style: TextStyle(fontSize: 20, color: Colors.white),
+                  ),
                 ),
-                onPressed: _resetGame,
-                child: const Text(
-                  "Play Again",
-                  style: TextStyle(fontSize: 20, color: Colors.white),
-                ),
-              )
+              ),
           ],
         ),
       ),
@@ -217,5 +253,11 @@ class _GameScreenState extends State<GameScreen> {
       return Icon(Icons.circle_outlined, size: 60, color: Colors.blue.shade700);
     }
     return const SizedBox.shrink();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 }
